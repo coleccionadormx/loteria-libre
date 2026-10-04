@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<title>Lotería</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d1550">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#1d1550;--panel:#2a1f6b;--pink:#e6317f;--gold:#f6b81c;--teal:#19b5a5;--paper:#fff6e0;--ink:#1d1550}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--paper);font-family:Georgia,"Times New Roman",serif;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);max-width:520px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
+h1{font-size:1.5rem;margin:0;color:var(--gold);letter-spacing:.5px}
+.count{font-size:.95rem;opacity:.85}
+.card{flex:1;min-height:0;background:var(--paper);color:var(--ink);border:6px solid var(--gold);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;outline:3px solid var(--pink);outline-offset:-14px;padding:10px}
+.num{position:absolute;top:14px;left:20px;font-size:1.6rem;font-weight:bold;color:var(--pink)}
+.emoji{font-size:min(38vw,190px);line-height:1.1}
+.name{font-size:clamp(1.8rem,9vw,2.6rem);font-weight:bold;margin-top:4px}
+.card.pop .emoji{animation:pop .35s ease-out}
+@keyframes pop{from{transform:scale(.6) rotate(-6deg)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.card.pop .emoji{animation:none}}
+.strip{display:flex;gap:6px;overflow-x:auto;padding:10px 0}
+.strip button{flex:0 0 auto;width:48px;height:48px;border-radius:10px;border:2px solid var(--teal);background:var(--panel);font-size:1.6rem;padding:0}
+.row{display:flex;gap:10px;margin-bottom:10px}
+.btn{flex:1;font:bold 1.1rem Georgia,serif;border:0;border-radius:14px;padding:16px 8px;color:var(--ink);background:var(--gold)}
+.btn.main{background:var(--pink);color:#fff;font-size:1.4rem;padding:20px}
+.btn.alt{background:var(--teal)}
+.btn.ghost{background:var(--panel);color:var(--paper);border:2px solid var(--teal)}
+.btn:focus-visible,.strip button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.opts{display:flex;align-items:center;gap:12px;font-size:.95rem;margin-bottom:12px;flex-wrap:wrap}
+.opts label{display:flex;align-items:center;gap:6px}
+input[type=range]{accent-color:var(--pink);flex:1;min-width:110px}
+dialog{background:var(--bg);color:var(--paper);border:3px solid var(--gold);border-radius:16px;max-width:92vw;width:460px;max-height:80vh;padding:16px}
+dialog::backdrop{background:#000a}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin:12px 0}
+.grid div{background:var(--panel);border-radius:8px;padding:6px;font-size:.8rem;text-align:center}
+.grid div b{display:block;font-size:1.5rem}
+.grid .off{opacity:.3}
+</style>
+</head>
+<body>
+<header><h1>Lotería</h1><div class="count" id="count">0 / 54</div></header>
+
+<div class="card" id="card" aria-live="polite">
+  <div class="num" id="num"></div>
+  <div class="emoji" id="emoji">🎴</div>
+  <div class="name" id="name">¡Que comience el juego!</div>
+</div>
+
+<div class="strip" id="strip" aria-label="Últimas cartas"></div>
+
+<div class="opts">
+  <label><input type="checkbox" id="voice" checked> Voz</label>
+  <label>Auto cada <span id="secs">6</span> s</label>
+  <input type="range" id="speed" min="3" max="15" value="6" aria-label="Segundos entre cartas">
+</div>
+
+<div class="row">
+  <button class="btn main" id="next">Cantar carta</button>
+</div>
+<div class="row">
+  <button class="btn alt" id="auto">▶ Automático</button>
+  <button class="btn ghost" id="list">Cantadas</button>
+  <button class="btn ghost" id="reset">Nueva</button>
+</div>
+
+<dialog id="dlg">
+  <b>Cartas cantadas</b>
+  <div class="grid" id="grid"></div>
+  <button class="btn" id="close">Cerrar</button>
+</dialog>
+
+<script>
+const CARDS=[["El gallo","🐓"],["El diablito","😈"],["La dama","💃"],["El catrín","🎩"],["El paraguas","☂️"],["La sirena","🧜‍♀️"],["La escalera","🪜"],["La botella","🍾"],["El barril","🛢️"],["El árbol","🌳"],["El melón","🍈"],["El valiente","🗡️"],["El gorrito","🧢"],["La muerte","💀"],["La pera","🍐"],["La bandera","🚩"],["El bandolón","🪕"],["El violoncello","🎻"],["La garza","🦩"],["El pájaro","🐦"],["La mano","✋"],["La bota","🥾"],["La luna","🌙"],["El cotorro","🦜"],["El borracho","🥴"],["El negrito","👦🏿"],["El corazón","❤️"],["La sandía","🍉"],["El tambor","🥁"],["El camarón","🦐"],["Las jaras","🏹"],["El músico","🎺"],["La araña","🕷️"],["El soldado","🪖"],["La estrella","⭐"],["El cazo","🍲"],["El mundo","🌎"],["El apache","🪶"],["El nopal","🌵"],["El alacrán","🦂"],["La rosa","🌹"],["La calavera","☠️"],["La campana","🔔"],["El cantarito","🏺"],["El venado","🦌"],["El sol","☀️"],["La corona","👑"],["La chalupa","🛶"],["El pino","🌲"],["El pescado","🐟"],["La palma","🌴"],["La maceta","🪴"],["El arpa","🎼"],["La rana","🐸"]];
+const $=id=>document.getElementById(id);
+let S;try{S=JSON.parse(localStorage.getItem("loteria"))}catch(e){}
+if(!S||!Array.isArray(S.deck)||S.deck.length!==54)S=newGame();
+let timer=null,wake=null;
+function newGame(){const d=[...Array(54).keys()];for(let i=53;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}return{deck:d,n:0}}
+function save(){try{localStorage.setItem("loteria",JSON.stringify(S))}catch(e){}}
+function speak(t){if(!$("voice").checked||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="es-MX";u.rate=.9;const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.replace("_","-").startsWith("es-MX"))||speechSynthesis.getVoices().find(v=>v.lang&&v.lang.startsWith("es"));if(v)u.voice=v;speechSynthesis.speak(u)}
+function render(){
+  $("count").textContent=S.n+" / 54";
+  if(S.n){const c=CARDS[S.deck[S.n-1]];$("emoji").textContent=c[1];$("name").textContent=c[0];$("num").textContent=S.deck[S.n-1]+1}
+  else{$("emoji").textContent="🎴";$("name").textContent="¡Que comience el juego!";$("num").textContent=""}
+  $("strip").innerHTML="";
+  for(let i=S.n-2;i>=Math.max(0,S.n-9);i--){const b=document.createElement("button");b.textContent=CARDS[S.deck[i]][1];b.title=CARDS[S.deck[i]][0];b.setAttribute("aria-label",CARDS[S.deck[i]][0]);b.onclick=()=>speak(CARDS[S.deck[i]][0]);$("strip").appendChild(b)}
+  $("next").disabled=S.n>=54;
+}
+function next(){
+  if(S.n>=54){stopAuto();speak("Se acabaron las cartas");return}
+  S.n++;save();render();
+  const el=$("card");el.classList.remove("pop");void el.offsetWidth;el.classList.add("pop");
+  speak(CARDS[S.deck[S.n-1]][0]);
+  if(S.n>=54)stopAuto();
+}
+async function startAuto(){
+  if(S.n>=54)return;
+  $("auto").textContent="⏸ Pausar";next();
+  timer=setInterval(next,$("speed").value*1000);
+  try{if(navigator.wakeLock)wake=await navigator.wakeLock.request("screen")}catch(e){}
+}
+function stopAuto(){clearInterval(timer);timer=null;$("auto").textContent="▶ Automático";if(wake){wake.release();wake=null}}
+$("next").onclick=next;
+$("auto").onclick=()=>timer?stopAuto():startAuto();
+$("speed").oninput=e=>{$("secs").textContent=e.target.value;if(timer){clearInterval(timer);timer=setInterval(next,e.target.value*1000)}};
+$("reset").onclick=()=>{if(S.n===0||confirm("¿Empezar una partida nueva?")){stopAuto();S=newGame();save();render()}};
+$("list").onclick=()=>{const called=new Set(S.deck.slice(0,S.n));$("grid").innerHTML=CARDS.map((c,i)=>`<div class="${called.has(i)?"":"off"}"><b>${c[1]}</b>${i+1}. ${c[0]}</div>`).join("");$("dlg").showModal()};
+$("close").onclick=()=>$("dlg").close();
+if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{};
+if("serviceWorker"in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+render();
+</script>
+</body>
+</html>
